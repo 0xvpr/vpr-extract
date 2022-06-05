@@ -1,7 +1,8 @@
 TARGET    = vpr-extract
 
 CC        = gcc
-CFLAGS    = -O3 -Wall -Wextra -Werror -Wshadow -Wpedantic -Wconversion
+CFLAGS    = -O3 -Wall -Wextra -Werror -Wshadow -Wpedantic -Wconversion\
+            -ffunction-sections -ffast-math -funroll-loops -fPIE
 
 LD        = gcc
 LDFLAGS   = -s
@@ -17,9 +18,14 @@ OBJECTS   = $(patsubst $(SOURCE)/%.c,$(OBJECT)/%.o,$(SOURCES))
 INCLUDE   = include
 INCLUDES  = $(addprefix -I,$(INCLUDE))
 
-all: $(TARGET)
+ifeq ($(PREFIX),)
+PREFIX    = /usr/local
+endif
 
-$(TARGET): $(BIN) $(BUILD) $(OBJECTS)
+all: $(TARGET)
+$(TARGET): $(BIN)/$(PROJECT)
+
+$(BIN)/$(PROJECT): $(BIN) $(BUILD) $(OBJECTS)
 	$(LD) $(LDFLAGS) $(OBJECTS) -o $(BIN)/$(TARGET)
 
 $(OBJECTS): $(OBJECT)/%.o : $(SOURCE)/%.c
@@ -31,12 +37,17 @@ $(BIN):
 $(BUILD):
 	mkdir -p $@
 
+.PHONY: install
+install: $(BIN)/$(PROJECT)
+	install -d $(PREFIX)/bin
+	install -m 555 $(BIN)/$(TARGET) $(PREFIX)/bin
+
 .PHONY: clean
 clean:
-	rm -fr $(BIN)/*
-	rm -fr $(BUILD)/*
+	rm -fr ./$(BIN)/*
+	rm -fr ./$(BUILD)/*
 
 .PHONY: extra-clean
 extra-clean:
-	rm -fr $(BIN)
-	rm -fr $(BUILD)
+	rm -fr ./$(BIN)
+	rm -fr ./$(BUILD)
