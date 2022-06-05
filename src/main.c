@@ -1,3 +1,12 @@
+/**
+ * Creator:     VPR
+ * Created:     June 5th, 2022
+ * Updated:     June 5th, 2022
+ *
+ * Brief:
+ *      Thin wrapper for objdump to provide a quick extraction of the .text section of an executable
+**/
+
 #include <stdlib.h>
 #include <stdio.h>
 

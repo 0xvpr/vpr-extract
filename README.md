@@ -1,6 +1,6 @@
 # vpr-extract
 This project aims to provide a tool for the extraction of the  
-text section of an executable
+.text section of an executable
 
 ## Build instructions
 ```bash
