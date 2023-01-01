@@ -1,14 +1,7 @@
--std=c99
---target=x86_64-pc-windows-msvc
--isystem/usr/x86_64-w64-mingw32/include
--isystem/usr/lib/gcc/x86_64-w64-mingw32/9.3-win32/include
--isystem/usr/lib/gcc/x86_64-w64-mingw32/9.3-win32/include-fixed
+-std=c++2a
 -Iinclude
 -Wall
 -Wextra
 -Werror
 -Wshadow
--Wpedantic
 -Wconversion
--fms-compatibility
--fms-extensions

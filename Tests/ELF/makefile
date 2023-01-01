@@ -1,2 +1,2 @@
 all:
-	gcc elf.c -o elf.exe
+	gcc -c elf.c -o elf.o

@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-int main()
+void payload()
 {
-    return puts("Unix\n");
+    puts("Unix\n");
 }

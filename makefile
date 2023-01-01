@@ -1,26 +1,25 @@
-TARGET    = vpr-extract
+TARGET     = vpr-extract
 
-CC        = gcc
-CFLAGS    = -O3 -Wall -Wextra -Werror -Wshadow -Wpedantic -Wconversion\
-            -ffunction-sections -ffast-math -funroll-loops -fPIE
+CC         = g++
+CFLAGS     = -O2 -Wall -Wextra -Werror -Wshadow -Wpedantic -Wconversion \
+             -ffunction-sections -ffast-math -funroll-loops -fPIC
 
-LD        = gcc
-LDFLAGS   = -s
+LD         = g++
+LDFLAGS    = -s
 
-BIN       = bin
-BUILD     = build
+BIN        = Bin
+BUILD      = Build
 
-SOURCE    = src
-OBJECT    = $(BUILD)
-SOURCES   = $(wildcard $(SOURCE)/*.c)
-OBJECTS   = $(patsubst $(SOURCE)/%.c,$(OBJECT)/%.o,$(SOURCES))
-
-INCLUDE   = include
-INCLUDES  = $(addprefix -I,$(INCLUDE))
+SOURCE     = Sources
+OBJECT     = $(BUILD)
+SOURCES    = $(wildcard $(SOURCE)/*.cpp)
+OBJECTS    = $(patsubst $(SOURCE)/%.cpp,$(OBJECT)/%.obj,$(SOURCES))
 
 ifeq ($(PREFIX),)
-PREFIX    = /usr/local
+PREFIX     = /usr/local
 endif
+
+MAKEFLAGS += $(prefix -j,$(shell nproc))
 
 all: $(TARGET)
 $(TARGET): $(BIN)/$(PROJECT)
@@ -28,7 +27,7 @@ $(TARGET): $(BIN)/$(PROJECT)
 $(BIN)/$(PROJECT): $(BIN) $(BUILD) $(OBJECTS)
 	$(LD) $(LDFLAGS) $(OBJECTS) -o $(BIN)/$(TARGET)
 
-$(OBJECTS): $(OBJECT)/%.o : $(SOURCE)/%.c
+$(OBJECT)/%.obj: $(SOURCE)/%.cpp
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 $(BIN):
@@ -37,6 +36,13 @@ $(BIN):
 $(BUILD):
 	mkdir -p $@
 
+.PHONY: tests
+tests:
+	make -C Tests/PE
+	./bin/$(TARGET) Tests/PE/x86-pe.o Tests/PE/x64-pe.o
+	#make -C Tests/ELF
+	#./bin/$(TARGET) Tests/PE/x86-elf.o Tests/PE/x64-elf.o
+
 .PHONY: install
 install: $(BIN)/$(PROJECT)
 	install -d $(PREFIX)/bin
@@ -44,10 +50,14 @@ install: $(BIN)/$(PROJECT)
 
 .PHONY: clean
 clean:
-	rm -fr ./$(BIN)/*
-	rm -fr ./$(BUILD)/*
+	rm -fr `find . -name "*.o"`
+	rm -fr `find . -name "*.obj"`
+	rm -fr `find . -name "*.bin"`
+	rm -fr `find . -name "*.exe"`
+	rm -fr ./bin/*
+	rm -fr ./build/*
 
 .PHONY: extra-clean
 extra-clean:
-	rm -fr ./$(BIN)
-	rm -fr ./$(BUILD)
+	rm -fr ./bin
+	rm -fr ./build

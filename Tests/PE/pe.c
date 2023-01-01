@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-int main()
+void payload(void)
 {
-    return puts("Windows\n");
+    puts("Windows\n");
 }

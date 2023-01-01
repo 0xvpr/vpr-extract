@@ -1,6 +1,6 @@
 # vpr-extract
 This project aims to provide a tool for the extraction of the  
-.text section of an executable
+.text section of a COFF object file.
 
 ## Build instructions
 ```bash
@@ -12,10 +12,10 @@ make
 
 ## Example Usage
 ```bash
-vpr-extract path/to/file1 -s -o out.txt
+vpr-extract path/to/file-1 path/to/file-2
 ```
 
-## Testing (Needs improvement)
+## Testing
 ```bash
-chmod +x ./run-test.sh
+make tests
 ```
