@@ -21,6 +21,7 @@ vpr-extract path/to/file-1 path/to/file-2
 # Target: path/to/file-2 -> out-1.bin
 # Size of path/to/file-2:      69
 # Written to 'out-1.bin'.
+#
 ```
 
 ## Testing
