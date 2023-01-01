@@ -41,6 +41,7 @@ build
 *.a
 *.o
 *.so
+*.bin
 *.obj
 *.exe
 *.lib
