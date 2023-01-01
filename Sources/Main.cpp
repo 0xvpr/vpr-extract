@@ -76,7 +76,6 @@ int main(int argc, char** argv) {
         auto& target = targets.at(i & 0xFF);
         target.first  = argv[i];
         target.second = "out-" + std::to_string(i) + ".bin";
-        std::cout << target.first << " " << target.second << "\n";
     }
 
     for (const auto& target : targets) {
@@ -126,7 +125,7 @@ int main(int argc, char** argv) {
         outfile.write(reinterpret_cast<char *>(data.data()), text_section->SizeOfRawData);
         outfile.close();
 
-        std::cout << "Written to '" << target.second << "'.\n";
+        std::cout << "Written to '" << target.second << "'.\n" << std::endl;
     }
 
     return 0;
