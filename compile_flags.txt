@@ -1,7 +1,0 @@
--std=c++2a
--Iinclude
--Wall
--Wextra
--Werror
--Wshadow
--Wconversion

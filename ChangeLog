@@ -1,0 +1,2 @@
+2023-MAY-10 -> VPR
+  * Project reconfigured to build and install using GNU automake.

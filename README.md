@@ -2,12 +2,14 @@
 This project aims to provide a tool for the extraction of the  
 .text section of a COFF object file.
 
-## Build Instructions
+## Build Instructions (Using GNU Autotools)
 ```bash
-git clone https://github.com/0xvpr/vpr-extract
-cd vpr-extract
+git clone https://github.com/0xvpr/vpr-extract && cd vpr-extract
+autoreconf -i
+mkdir Build && cd Build
+../configure --prefix=/usr/local
 make
-# sudo make install # uncomment if you want it available globally (only recommended for LINUX/WSL/MSYS environments)
+# make install # uncomment if you want it available globally
 ```
 
 ## Example Usage
@@ -26,5 +28,5 @@ vpr-extract path/to/file-1 path/to/file-2
 
 ## Testing
 ```bash
-make tests
+make check
 ```

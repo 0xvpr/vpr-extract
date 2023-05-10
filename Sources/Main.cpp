@@ -89,8 +89,13 @@ int main(int argc, char** argv) {
         file.read((char *)&file_header, sizeof(file_header));
 
         switch (file_header.Machine) {
+            [[unlikely]]
             case machine_type::x86:
+                break;
+            [[unlikely]]
             case machine_type::iit:
+                break;
+            [[likely]]
             case machine_type::x64:
                 break;
             default:
