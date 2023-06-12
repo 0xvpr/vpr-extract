@@ -178,11 +178,11 @@ int main(int argc, char** argv) {
                 file.read(reinterpret_cast<char *>(&elf_header_64), sizeof(elf_header_64));
 
                 definitions::ElfSectionHeader64 section_header{};
-                file.seekg((long)(sizeof(elf_header_64) + elf_header_64.e_shoff), std::ios::beg);
+                file.seekg(static_cast<long>(sizeof(elf_header_64) + elf_header_64.e_shoff), std::ios::beg);
                 file.read(reinterpret_cast<char *>(&section_header), sizeof(section_header));
 
                 std::vector<char> data(section_header.sh_size);
-                file.seekg((long)(section_header.sh_offset), std::ios::beg);
+                file.seekg(static_cast<long>(section_header.sh_offset), std::ios::beg);
                 file.read((data.data()), static_cast<long>(data.size()));
                 file.close();
 
