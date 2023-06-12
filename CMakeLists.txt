@@ -23,7 +23,26 @@ set( SOURCES ${CXX_HEADERS} ${CXX_SOURCES})
 
 add_executable( ${PROJECT_NAME} ${SOURCES} )
 
-target_compile_options( ${PROJECT_NAME} PRIVATE -O3 -Wall -Wextra -Werror -Wshadow -Wpedantic -Wconversion)
+if(MSVC)
+else()
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+            target_compile_options(
+                ${PROJECT_NAME} PRIVATE -march=native -m64
+                                        -O3
+                                        -Wall -Wextra -Werror -Wshadow -Wpedantic -Wconversion
+                                        -ffunction-sections -fPIE
+                                        -fno-ident -fvisibility=hidden
+            )
+            target_link_options(
+                ${PROJECT_NAME} PRIVATE -s
+            )
+        else()
+            target_compile_options(
+                ${PROJECT_NAME} PRIVATE -O2
+                                        -Wall -Wextra -Werror -Wshadow -Wpedantic -Wconversion
+            )
+    endif()
+endif()
 
 install(
     TARGETS     ${PROJECT_NAME} 

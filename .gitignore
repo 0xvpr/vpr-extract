@@ -97,7 +97,9 @@ Makefile
 # Exclude Folders
 venv
 bin
+build
 Build
+win-build
 
 # Exclude Compiled Files
 **/*.a

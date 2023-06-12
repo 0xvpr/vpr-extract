@@ -6,6 +6,8 @@
 #ifndef   PACKED
   #ifdef    __GNUC__
     #define PACKED [[gnu::packed]]
+  #else
+    #define PACKED
   #endif // __GNUC__
   /**
    * ifdef _WIN32

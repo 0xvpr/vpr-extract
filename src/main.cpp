@@ -3,7 +3,7 @@
  * Created:         June 5th, 2022
  *
  * Updated by:      VPR
- * Updated:         June 11th, 2023
+ * Updated:         June 12th, 2023
  *
  * Description:     A tool for extracting and dumping the .text section
  *                  of a COFF object file.
@@ -19,10 +19,13 @@
 
 #include <cstring>
 
-constexpr const char * target_section = ".text";
+using io_pair_t = std::pair<std::string, std::string>;
+using object_type_t = uint32_t;
 
-[[noreturn]] static inline
-void __usage_error(const char* msg, int exit_code, const char* program_name) {
+constexpr char target_section[6] = ".text";
+
+[[noreturn,gnu::cold]] static inline
+void __usage_error(const char* msg, int exit_code, char* const program_name) {
     std::cerr << "Usage error: " << msg << "\n"
                  "\n"
                  "example:\n"
@@ -39,7 +42,7 @@ void __usage_error(const char* msg, int exit_code, const char* program_name) {
     exit(exit_code);
 }
 
-[[nodiscard]] static inline
+[[nodiscard,gnu::hot]] static inline
 uint32_t determine_object_type(std::ifstream& ifs) {
     uint32_t object_type = object_types::unsupported;
 
@@ -93,112 +96,157 @@ uint32_t determine_object_type(std::ifstream& ifs) {
     return object_types::unsupported;
 }
 
-int main(int argc, char** argv) {
-    auto program_name = argv[0];
+[[gnu::hot]] static inline
+bool process_pe_64(std::ifstream& ifs, const io_pair_t& target) {
+    ifs.seekg(0, std::ios::beg);
 
-    if (argc < 2) {
-        __usage_error("No file(s) specified.", 1, program_name);
+    definitions::IMAGE_FILE_HEADER file_header{};
+    ifs.read(reinterpret_cast<char *>(&file_header), sizeof(file_header));
+
+    if (ifs.fail()) [[unlikely]] {
+        std::cerr << "Failed to read Image File Header of: " << target.first << ".\n";
+        return false;
+    }
+
+    ifs.seekg(sizeof(definitions::IMAGE_FILE_HEADER));
+    std::vector<definitions::IMAGE_SECTION_HEADER> section_headers(file_header.NumberOfSections);
+    ifs.read(reinterpret_cast<char *>(section_headers.data()), file_header.NumberOfSections * sizeof(definitions::IMAGE_SECTION_HEADER));
+
+    if (ifs.fail()) [[unlikely]] {
+        std::cerr << "Failed to read Section Header(s) of: " << target.first << ".\n";
+        return false;
+    }
+
+    definitions::IMAGE_SECTION_HEADER* text_section{nullptr};
+    for (const auto& section : section_headers) {
+        if (std::strncmp(reinterpret_cast<const char *>(section.Name), target_section, 5) == 0) {
+            text_section = const_cast<decltype(text_section)>(&section);
+            break;
+        }
+    }
+
+    if (!text_section) [[unlikely]] {
+        std::cerr << "Operation failed: .text section not found." << "\n";
+        return false;
+    }
+
+    std::vector<char> data(text_section->SizeOfRawData);
+    ifs.seekg(text_section->PointerToRawData, std::ios::beg);
+    ifs.read(data.data(), text_section->SizeOfRawData);
+
+    if (ifs.fail()) [[unlikely]] {
+        std::cerr << "Failed to read text section of: " << target.first << ".\n";
+        return false;
+    } 
+
+    ifs.close();
+    std::cout << "Size of " << target.first << ":\t" << data.size() << "\n";
+
+    std::ofstream outfile(target.second, std::ios::binary);
+    outfile.write(data.data(), text_section->SizeOfRawData);
+
+    if (outfile.fail()) [[unlikely]] {
+        std::cerr << "Failed to write data to '" << target.second << "'.\n";
+        return false;
+    } 
+
+    outfile.close();
+    std::cout << "Written to '" << target.second << "'.\n" << std::endl;
+
+    return true;
+}
+
+[[gnu::hot]] static inline
+bool process_elf_64(std::ifstream& ifs, const io_pair_t& target) {
+    ifs.seekg(0, std::ios::beg);
+
+    definitions::ElfHeader64 elf_header_64{};
+    ifs.read(reinterpret_cast<char *>(&elf_header_64), sizeof(elf_header_64));
+
+    if (ifs.fail()) [[unlikely]] {
+        std::cerr << "Failed to read ELF64_Ehdr header of: " << target.first << ".\n";
+        return false;
+    } 
+
+    definitions::ElfSectionHeader64 section_header{};
+    ifs.seekg(static_cast<long>(sizeof(elf_header_64) + elf_header_64.e_shoff), std::ios::beg);
+    ifs.read(reinterpret_cast<char *>(&section_header), sizeof(section_header));
+
+    if (ifs.fail()) [[unlikely]] {
+        std::cerr << "Failed to read ELF64_Shdr header of: " << target.first << ".\n";
+        return false;
+    } 
+
+    std::vector<char> data(section_header.sh_size);
+    ifs.seekg(static_cast<long>(section_header.sh_offset), std::ios::beg);
+    ifs.read((data.data()), static_cast<long>(data.size()));
+
+    if (ifs.fail()) [[unlikely]] {
+        std::cerr << "Failed to read text section of: " << target.first << ".\n";
+        return false;
+    } 
+
+    ifs.close();
+    std::cout << "Size of " << target.first << ":\t" << data.size() << "\n";
+
+    std::ofstream outfile(target.second, std::ios::binary);
+    outfile.write(data.data(), static_cast<long>(data.size()));
+
+    if (outfile.fail()) [[unlikely]] {
+        std::cerr << "Failed to write data to '" << target.second << "'.\n";
+        return false;
+    } 
+
+    outfile.close();
+    std::cout << "Written to '" << target.second << "'.\n" << std::endl;
+
+    return true;
+}
+
+
+int main(int argc, char** argv) {
+    char* const program_name = argv[0];
+
+    if (argc < 2) [[unlikely]] {
+        __usage_error("No file(s) specified.", -1, program_name);
     } 
 
     --argc;
     ++argv;
 
-    using io_pair_t = std::pair<std::string, std::string>;
     std::vector<io_pair_t> targets(argc & 0xFF);
+    auto size = targets.size();
 
-    // TODO use input filename as prefix
-    for (int i = 0; i < argc && i < 0x100; ++i) {
-        auto& target = targets.at(i & 0xFF);
+    for (size_t i = 0; i < size; ++i) {
+        io_pair_t& target = targets.at(i);
         target.first  = argv[i];
     }
 
     for (const auto& target : targets) {
-        std::ifstream file(target.first, std::ios::binary);
-        if (!file.is_open()) {
+        std::ifstream file{target.first, std::ios::binary};
+        if (!file.is_open()) [[unlikely]] {
             std::cerr << "File: " << target.first << " could not be opened.\n";
             continue;
         }
 
-        auto filestem = std::filesystem::absolute(target.first).stem().string();
+        std::string filestem = std::filesystem::absolute(target.first).stem().string();
         const_cast<std::string &>(target.second) = filestem + ".bin";
 
-        auto object_type = determine_object_type(file);
-        if (!object_type) {
-            std::cout << "Target:\t" << target.first << " is not supported.\n";
-            continue;
-        } else {
+        object_type_t object_type = determine_object_type(file);
+
+        if (object_type) [[likely]] {
             std::cout << "Target:\t" << target.first << " -> " << target.second << "\n";
+        } else [[unlikely]] {
+            std::cerr << "Target:\t" << target.first << " is not supported.\n";
+            continue;
         }
 
         switch (object_type) {
-            [[likely]] case object_types::pe64:
-            [[likely]] case object_types::pe32: {
-                file.seekg(0, std::ios::beg);
-
-                definitions::IMAGE_FILE_HEADER file_header{};
-                file.read(reinterpret_cast<char *>(&file_header), sizeof(file_header));
-
-                file.seekg(sizeof(definitions::IMAGE_FILE_HEADER));
-                std::vector<definitions::IMAGE_SECTION_HEADER> section_headers(file_header.NumberOfSections);
-                file.read(reinterpret_cast<char *>(section_headers.data()), file_header.NumberOfSections * sizeof(definitions::IMAGE_SECTION_HEADER));
-
-                definitions::IMAGE_SECTION_HEADER* text_section{nullptr};
-                for (const auto& section : section_headers) {
-                    if (std::strncmp(reinterpret_cast<const char *>(section.Name), target_section, 5) == 0) {
-                        text_section = (decltype(text_section))&section;
-                        break;
-                    }
-                }
-
-                if (!text_section) {
-                    std::cerr << "Operation failed: .text section not found." << "\n";
-                    file.close();
-                    return 4;
-                }
-
-                std::vector<char> data(text_section->SizeOfRawData);
-                file.seekg(text_section->PointerToRawData, std::ios::beg);
-                file.read(data.data(), text_section->SizeOfRawData);
-                file.close();
-
-                std::cout << "Size of " << target.first << ":\t" << data.size() << "\n";
-
-                std::ofstream outfile(target.second, std::ios::binary);
-                outfile.write(data.data(), text_section->SizeOfRawData);
-                outfile.close();
-
-                std::cout << "Written to '" << target.second << "'.\n" << std::endl;
-
-                break;
-            }
-            [[unlikely]] case object_types::elf64: {
-                file.seekg(0, std::ios::beg);
-
-                definitions::ElfHeader64 elf_header_64{};
-                file.read(reinterpret_cast<char *>(&elf_header_64), sizeof(elf_header_64));
-
-                definitions::ElfSectionHeader64 section_header{};
-                file.seekg(static_cast<long>(sizeof(elf_header_64) + elf_header_64.e_shoff), std::ios::beg);
-                file.read(reinterpret_cast<char *>(&section_header), sizeof(section_header));
-
-                std::vector<char> data(section_header.sh_size);
-                file.seekg(static_cast<long>(section_header.sh_offset), std::ios::beg);
-                file.read((data.data()), static_cast<long>(data.size()));
-                file.close();
-
-                std::cout << "Size of " << target.first << ":\t" << data.size() << "\n";
-
-                std::ofstream outfile(target.second, std::ios::binary);
-                outfile.write(data.data(), static_cast<long>(data.size()));
-                outfile.close();
-
-                std::cout << "Written to '" << target.second << "'.\n" << std::endl;
-
-                break;
-            }
-            [[unlikely]] default: { break; }
+            [[likely]]   case object_types::pe32:  {          /* fallthrough */           }
+            [[likely]]   case object_types::pe64:  { process_pe_64(file, target);  break; } 
+            [[likely]]   case object_types::elf64: { process_elf_64(file, target); break; }
+            [[unlikely]] default:                  {                               break; }
         }
-
     }
 
     return 0;
