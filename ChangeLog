@@ -1,2 +1,5 @@
 2023-MAY-10 -> VPR
   * Project reconfigured to build and install using GNU automake.
+
+2023-JUN-11 -> VPR
+  * Project reconfigured to build and install using CMake.

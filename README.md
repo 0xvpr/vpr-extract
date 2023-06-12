@@ -2,7 +2,7 @@
 This project aims to provide a tool for the extraction of the  
 .text section of a COFF object file.
 
-## Build Instructions (Using GNU Autotools)
+## Build Instructions (Using CMake)
 ```bash
 git clone https://github.com/0xvpr/vpr-extract && cd vpr-extract
 autoreconf -i
