@@ -5,7 +5,6 @@ This project aims to provide a tool for the extraction of the
 ## Build Instructions
 ### Using Docker CMake (Recommended)
 ```bash
-```bash
 git clone https://github.com/0xvpr/vpr-extract && cd vpr-extract
 make docker-container
 make docker-build
