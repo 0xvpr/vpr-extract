@@ -4,16 +4,26 @@
 #include <cstdint>
 
 #ifndef   PACKED
-
   #ifdef    __GNUC__
     #define PACKED [[gnu::packed]]
   #endif // __GNUC__
-
   /**
-   * TODO ifdef _WIN32
+   * ifdef _WIN32
   **/
-
 #endif // PACKED
+
+namespace object_types {
+    constexpr uint32_t unsupported = 0;
+    constexpr uint32_t elf64       = 1;
+    constexpr uint32_t pe32        = 2;
+    constexpr uint32_t pe64        = 3;
+}
+
+namespace machine_type {
+    constexpr uint16_t reloc       = 0x0001;
+    constexpr uint16_t x86         = 0x014C;
+    constexpr uint16_t x64         = 0x8664;
+}
 
 namespace definitions {
 typedef struct PACKED _IMAGE_FILE_HEADER {
@@ -43,50 +53,50 @@ typedef struct PACKED _IMAGE_SECTION_HEADER {
 } IMAGE_SECTION_HEADER;
 
 typedef struct PACKED _ElfHeader32 {
-    unsigned char   e_magic[16];
-    uint16_t        e_type;
-    uint16_t        e_machine;
-    uint32_t        e_version;
-    uint32_t        e_entry;
-    uint32_t        e_phoff;
-    uint32_t        e_shoff;
-    uint32_t        e_flags;
-    uint16_t        e_ehsize;
-    uint16_t        e_phentsize;
-    uint16_t        e_phnum;
-    uint16_t        e_shentsize;
-    uint16_t        e_shnum;
-    uint16_t        e_shstrndx;
+    uint8_t         e_magic[16];
+    uint16_t        e_type          : 16;
+    uint16_t        e_machine       : 16;
+    uint32_t        e_version       : 32;
+    uint32_t        e_entry         : 32;
+    uint32_t        e_phoff         : 32;
+    uint32_t        e_shoff         : 32;
+    uint32_t        e_flags         : 32;
+    uint16_t        e_ehsize        : 16;
+    uint16_t        e_phentsize     : 16;
+    uint16_t        e_phnum         : 16;
+    uint16_t        e_shentsize     : 16;
+    uint16_t        e_shnum         : 16;
+    uint16_t        e_shstrndx      : 16;
 } ElfHeader32;
 
-typedef struct _ElfHeader64 {
-    unsigned char   e_magic[16];
-    uint16_t        e_type;
-    uint16_t        e_machine;
-    uint32_t        e_version;
-    uint64_t        e_entry;
-    uint64_t        e_phoff;
-    uint64_t        e_shoff;
-    uint32_t        e_flags;
-    uint16_t        e_ehsize;
-    uint16_t        e_phentsize;
-    uint16_t        e_phnum;
-    uint16_t        e_shentsize;
-    uint16_t        e_shnum;
-    uint16_t        e_shstrndx;
+typedef struct PACKED _ElfHeader64 {
+    uint8_t         e_magic[16];
+    uint16_t        e_type          : 16;
+    uint16_t        e_machine       : 16;
+    uint32_t        e_version       : 32;
+    uint64_t        e_entry         : 64;
+    uint64_t        e_phoff         : 64;
+    uint64_t        e_shoff         : 64;
+    uint32_t        e_flags         : 32;
+    uint16_t        e_ehsize        : 16;
+    uint16_t        e_phentsize     : 16;
+    uint16_t        e_phnum         : 16;
+    uint16_t        e_shentsize     : 16;
+    uint16_t        e_shnum         : 16;
+    uint16_t        e_shstrndx      : 16;
 } ElfHeader64;
 
-typedef struct _ElfSectionHeader64 {
-    uint32_t        sh_name;      /* Section name */
-    uint32_t        sh_type;      /* Section type */
-    uint64_t        sh_flags;     /* Section attributes */
-    uint64_t        sh_addr;      /* Virtual address in memory */
-    uint64_t        sh_offset;    /* Offset in file */
-    uint64_t        sh_size;      /* Size of section */
-    uint32_t        sh_link;      /* Link to other section */
-    uint32_t        sh_info;      /* Miscellaneous information */
-    uint64_t        sh_addralign; /* Address alignment boundary */
-    uint64_t        sh_entsize;   /* Size of entries, if section has table */
+typedef struct PACKED _ElfSectionHeader64 {
+    uint32_t        sh_name         : 32;   // Section name
+    uint32_t        sh_type         : 32;   // Section type
+    uint64_t        sh_flags        : 64;   // Section attributes
+    uint64_t        sh_addr         : 64;   // Virtual address in memory
+    uint64_t        sh_offset       : 64;   // Offset in file
+    uint64_t        sh_size         : 64;   // Size of section
+    uint32_t        sh_link         : 32;   // Link to other section
+    uint32_t        sh_info         : 32;   // Miscellaneous information
+    uint64_t        sh_addralign    : 64;   // Address alignment boundary
+    uint64_t        sh_entsize      : 64;   // Size of entries, if section has table
 } ElfSectionHeader64;
 } // namespace definitions
 

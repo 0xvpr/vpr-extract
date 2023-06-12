@@ -15,49 +15,45 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <map>
+#include <string>
 
 #include <cstring>
 
-#include <elf.h>
-
 constexpr const char * target_section = ".text";
 
-namespace object_types {
-    constexpr uint32_t unsupported = 0;
-    constexpr uint32_t elf64       = 1;
-    constexpr uint32_t pe32        = 2;
-    constexpr uint32_t pe64        = 3;
-}
-
-namespace machine_type {
-    constexpr uint16_t reloc       = 0x0001;
-    constexpr uint16_t x86         = 0x014C;
-    constexpr uint16_t x64         = 0x8664;
-}
-
 [[noreturn]] static inline
-void __usage_error(const char* msg, int exit_code) {
-
-    std::cerr << "Usage error: " << msg << "\n";
+void __usage_error(const char* msg, int exit_code, const char* program_name) {
+    std::cerr << "Usage error: " << msg << "\n"
+                 "\n"
+                 "example:\n"
+                 "  " << program_name << " path/to/file-1.obj path/to/file-2.obj\n"
+                 "\n"
+                 "  Target: path/to/file-1.obj -> file-1.bin\n"
+                 "  Size of path/to/file-1.obj:      420\n"
+                 "  Written to 'file-1.bin'.\n"
+                 "\n"
+                 "  Target: path/to/file-2.obj -> file-2.bin\n"
+                 "  Size of path/to/file-2.obj:      69\n"
+                 "  Written to 'file-2.bin'.\n";
 
     exit(exit_code);
-
 }
 
 [[nodiscard]] static inline
 uint32_t determine_object_type(std::ifstream& ifs) {
-
     uint32_t object_type = object_types::unsupported;
 
     object_type = [&ifs]() -> uint32_t {
         definitions::IMAGE_FILE_HEADER image_file_header{};
 
         ifs.seekg(0, std::ios::beg);
-        ifs.read((char *)&image_file_header, sizeof(image_file_header));
+        ifs.read(reinterpret_cast<char *>(&image_file_header), sizeof(image_file_header));
+        if (ifs.fail()) {
+            return object_types::unsupported;
+        }
 
-        return object_types::pe64  * (image_file_header.Machine == machine_type::x64) +
-               object_types::pe32  * (image_file_header.Machine == machine_type::x86);
+        return object_types::pe64 * (image_file_header.Machine == machine_type::x64)
+             + object_types::pe32 * (image_file_header.Machine == machine_type::x86);
     }();
 
     if (object_type) {
@@ -68,8 +64,7 @@ uint32_t determine_object_type(std::ifstream& ifs) {
         definitions::ElfHeader64 elf_header_64{};
 
         ifs.seekg(0, std::ios::beg);
-        ifs.read((char *)&elf_header_64, sizeof(elf_header_64));
-
+        ifs.read(reinterpret_cast<char *>(&elf_header_64), sizeof(elf_header_64));
         if (ifs.fail()) {
             return object_types::unsupported;
         }
@@ -81,11 +76,9 @@ uint32_t determine_object_type(std::ifstream& ifs) {
              elf_header_64.e_type     != machine_type::reloc
            )
         {
-            ifs.seekg(0, std::ios::beg);
             return object_types::unsupported;
         }
 
-        ifs.seekg(0, std::ios::beg);
         if ( elf_header_64.e_magic[4] != object_types::elf64 ) {
             return object_types::elf64;
         }
@@ -101,12 +94,11 @@ uint32_t determine_object_type(std::ifstream& ifs) {
 }
 
 int main(int argc, char** argv) {
+    auto program_name = argv[0];
 
     if (argc < 2) {
-        __usage_error("No file specified.", 1);
-    } else if (argc > 256) {
-        __usage_error("Maximum number of files exceeded", 1);
-    }
+        __usage_error("No file(s) specified.", 1, program_name);
+    } 
 
     --argc;
     ++argv;
@@ -115,7 +107,7 @@ int main(int argc, char** argv) {
     std::vector<io_pair_t> targets(argc & 0xFF);
 
     // TODO use input filename as prefix
-    for (int i = 0; i < argc; ++i) {
+    for (int i = 0; i < argc && i < 0x100; ++i) {
         auto& target = targets.at(i & 0xFF);
         target.first  = argv[i];
     }
@@ -123,7 +115,8 @@ int main(int argc, char** argv) {
     for (const auto& target : targets) {
         std::ifstream file(target.first, std::ios::binary);
         if (!file.is_open()) {
-            __usage_error("File could not be opened.", 2);
+            std::cerr << "File: " << target.first << " could not be opened.\n";
+            continue;
         }
 
         auto filestem = std::filesystem::absolute(target.first).stem().string();
@@ -143,7 +136,7 @@ int main(int argc, char** argv) {
                 file.seekg(0, std::ios::beg);
 
                 definitions::IMAGE_FILE_HEADER file_header{};
-                file.read((char *)&file_header, sizeof(file_header));
+                file.read(reinterpret_cast<char *>(&file_header), sizeof(file_header));
 
                 file.seekg(sizeof(definitions::IMAGE_FILE_HEADER));
                 std::vector<definitions::IMAGE_SECTION_HEADER> section_headers(file_header.NumberOfSections);
@@ -163,15 +156,15 @@ int main(int argc, char** argv) {
                     return 4;
                 }
 
-                std::vector<unsigned char> data(text_section->SizeOfRawData);
+                std::vector<char> data(text_section->SizeOfRawData);
                 file.seekg(text_section->PointerToRawData, std::ios::beg);
-                file.read(reinterpret_cast<char *>(data.data()), text_section->SizeOfRawData);
+                file.read(data.data(), text_section->SizeOfRawData);
                 file.close();
 
                 std::cout << "Size of " << target.first << ":\t" << data.size() << "\n";
 
                 std::ofstream outfile(target.second, std::ios::binary);
-                outfile.write(reinterpret_cast<char *>(data.data()), text_section->SizeOfRawData);
+                outfile.write(data.data(), text_section->SizeOfRawData);
                 outfile.close();
 
                 std::cout << "Written to '" << target.second << "'.\n" << std::endl;
@@ -182,21 +175,21 @@ int main(int argc, char** argv) {
                 file.seekg(0, std::ios::beg);
 
                 definitions::ElfHeader64 elf_header_64{};
-                file.read((char *)&elf_header_64, sizeof(elf_header_64));
+                file.read(reinterpret_cast<char *>(&elf_header_64), sizeof(elf_header_64));
 
                 definitions::ElfSectionHeader64 section_header{};
                 file.seekg((long)(sizeof(elf_header_64) + elf_header_64.e_shoff), std::ios::beg);
-                file.read((char *)(&section_header), sizeof(section_header));
+                file.read(reinterpret_cast<char *>(&section_header), sizeof(section_header));
 
                 std::vector<char> data(section_header.sh_size);
                 file.seekg((long)(section_header.sh_offset), std::ios::beg);
-                file.read((data.data()), (long)data.size());
+                file.read((data.data()), static_cast<long>(data.size()));
                 file.close();
 
                 std::cout << "Size of " << target.first << ":\t" << data.size() << "\n";
 
                 std::ofstream outfile(target.second, std::ios::binary);
-                outfile.write(reinterpret_cast<char *>(data.data()), (long)data.size());
+                outfile.write(data.data(), static_cast<long>(data.size()));
                 outfile.close();
 
                 std::cout << "Written to '" << target.second << "'.\n" << std::endl;
