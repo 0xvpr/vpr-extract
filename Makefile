@@ -32,5 +32,5 @@ $(BUILD): CMakeLists.txt
 	cmake -B $@ -DCMAKE_BUILD_TYPE=$(CONFIG)
 
 clean:
-	rm -fr build
+	rm -fr ./build ./bin
 	rm -f $(shell find . -name "*.bin")

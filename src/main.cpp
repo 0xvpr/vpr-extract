@@ -20,6 +20,11 @@
 
 #include <cstring>
 
+#ifdef    _WIN32
+  #define gnu::hot
+  #define gnu::cold
+#endif // _WIN32
+
 using io_pair_t = std::pair<std::string, std::string>;
 using object_type_t = uint32_t;
 

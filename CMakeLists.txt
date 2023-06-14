@@ -10,7 +10,10 @@ set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
 set( CXX_HEADER_DIR ${CMAKE_SOURCE_DIR}/include )
 set( CXX_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src )
 
+if(MSVC)
+else()
 find_package(TBB REQUIRED)
+endif()
 
 include_directories( ${PROJECT_NAME} ${CXX_HEADER_DIR} )
 
@@ -24,7 +27,10 @@ set( CXX_SOURCES
 set( SOURCES ${CXX_HEADERS} ${CXX_SOURCES})
 
 add_executable( ${PROJECT_NAME} ${SOURCES} )
+if(MSVC)
+else()
 target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)
+endif()
 install(
     TARGETS     ${PROJECT_NAME} 
     DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
@@ -35,7 +41,7 @@ if(MSVC)
         ${PROJECT_NAME} PRIVATE /W4 /WX
                                 $<$<CONFIG:Debug>:/MTd>
                                 $<$<CONFIG:Debug>:/EHa>
-                                $<$<CONFIG:Release>:/ARCH:AVX512>
+                                $<$<CONFIG:Release>:/arch:AVX512>
                                 $<$<CONFIG:Release>:/EHs>
                                 $<$<CONFIG:Release>:/MT>
                                 $<$<CONFIG:Release>:/O2>
