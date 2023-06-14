@@ -3,7 +3,7 @@
  * Created:         June 5th, 2022
  *
  * Updated by:      VPR
- * Updated:         June 12th, 2023
+ * Updated:         June 13th, 2023
  *
  * Description:     A command line tool for the extraction of the .text section
  *                  of 32/64-bit COFF objects, and ELF64 Relocatable objects.
@@ -12,6 +12,7 @@
 #include "definitions.hpp"
 
 #include <filesystem>
+#include <execution>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -140,18 +141,20 @@ bool process_pe_64(std::ifstream& ifs, const io_pair_t& target) {
     } 
 
     ifs.close();
-    std::cout << "Size of " << target.first << ":\t" << data.size() << "\n";
+    std::stringstream ss;
+    ss << "Size of " << target.first << ":\t" << data.size() << "\n";
 
     std::ofstream outfile(target.second, std::ios::binary);
     outfile.write(data.data(), text_section->SizeOfRawData);
 
     if (outfile.fail()) [[unlikely]] {
+        std::cout << ss.str();
         std::cerr << "Failed to write data to '" << target.second << "'.\n";
         return false;
     } 
 
     outfile.close();
-    std::cout << "Written to '" << target.second << "'.\n" << std::endl;
+    std::cout << ss.str() << "Written to '" << target.second << "'.\n" << std::endl;
 
     return true;
 }
@@ -187,31 +190,65 @@ bool process_elf_64(std::ifstream& ifs, const io_pair_t& target) {
     } 
 
     ifs.close();
-    std::cout << "Size of " << target.first << ":\t" << data.size() << "\n";
+    std::stringstream ss;
+    ss << "Size of " << target.first << ":\t" << data.size() << "\n";
 
     std::ofstream outfile(target.second, std::ios::binary);
     outfile.write(data.data(), static_cast<long>(data.size()));
 
     if (outfile.fail()) [[unlikely]] {
+        std::cout << ss.str();
         std::cerr << "Failed to write data to '" << target.second << "'.\n";
         return false;
     } 
 
     outfile.close();
-    std::cout << "Written to '" << target.second << "'.\n" << std::endl;
+    std::cout << ss.str() << "Written to '" << target.second << "'.\n" << std::endl;
 
     return true;
 }
 
+[[nodiscard,gnu::hot]]
+int process_target(const io_pair_t& target) {
+    std::ifstream file{target.first, std::ios::binary};
+    if (!file.is_open()) [[unlikely]] {
+        std::cerr << "File: " << target.first << " could not be opened.\n";
+        return 1;
+    }
+
+    std::string filestem = std::filesystem::absolute(target.first).stem().string();
+    const_cast<std::string &>(target.second) = filestem + ".bin";
+
+    object_type_t object_type = determine_object_type(file);
+
+    if (object_type) [[likely]] {
+        std::cout << "Target:\t" << target.first << " -> " << target.second << "\n";
+    } else [[unlikely]] {
+        std::cerr << "Target:\t" << target.first << " is not supported.\n";
+        return 2;
+    }
+
+    switch (object_type) {
+        [[likely]]   case object_types::pe32:  {          /* fallthrough */           }
+        [[likely]]   case object_types::pe64:  { process_pe_64(file, target);  break; } 
+        [[likely]]   case object_types::elf64: { process_elf_64(file, target); break; }
+        [[unlikely]] default:                  {                               break; }
+    }
+
+    return 0;
+};
 
 int main(int argc, char** argv) {
     char* const program_name = argv[0];
 
-    if (argc-- < 2) {
+    if (argc < 2) {
         __usage_error("No file(s) specified.", -1, program_name);
     }
 
-    std::vector<io_pair_t> targets(argc & 0xFF);
+    --argc;
+    ++argv;
+
+    std::vector<io_pair_t> targets(static_cast<unsigned>(argc));
     auto size = targets.size();
 
     for (size_t i = 0; i < size; ++i) {
@@ -219,31 +256,19 @@ int main(int argc, char** argv) {
         target.first  = argv[i];
     }
 
-    for (const auto& target : targets) {
-        std::ifstream file{target.first, std::ios::binary};
-        if (!file.is_open()) [[unlikely]] {
-            std::cerr << "File: " << target.first << " could not be opened.\n";
-            continue;
+    auto result_handler = [](const io_pair_t& target) -> void {
+        switch (process_target(target)) {
+            [[likely]]   case 0:  { /* fallthrough */ }
+            [[unlikely]] case 1:  { /* fallthrough */ }
+            [[unlikely]] case 2:  { /* fallthrough */ }
+            [[unlikely]] default: {            break; }
         }
+    };
 
-        std::string filestem = std::filesystem::absolute(target.first).stem().string();
-        const_cast<std::string &>(target.second) = filestem + ".bin";
-
-        object_type_t object_type = determine_object_type(file);
-
-        if (object_type) [[likely]] {
-            std::cout << "Target:\t" << target.first << " -> " << target.second << "\n";
-        } else [[unlikely]] {
-            std::cerr << "Target:\t" << target.first << " is not supported.\n";
-            continue;
-        }
-
-        switch (object_type) {
-            [[likely]]   case object_types::pe32:  {          /* fallthrough */           }
-            [[likely]]   case object_types::pe64:  { process_pe_64(file, target);  break; } 
-            [[likely]]   case object_types::elf64: { process_elf_64(file, target); break; }
-            [[unlikely]] default:                  {                               break; }
-        }
+    if (targets.size() < std::thread::hardware_concurrency()) [[likely]] {
+        std::for_each(std::execution::seq, targets.begin(), targets.end(), result_handler);
+    } else [[unlikely]] {
+        std::for_each(std::execution::par_unseq, targets.begin(), targets.end(), result_handler);
     }
 
     return 0;

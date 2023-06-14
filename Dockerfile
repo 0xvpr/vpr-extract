@@ -23,7 +23,8 @@ RUN apt-get install -y --no-install-recommends \
     cmake \
     build-essential \
     mingw-w64 \
-    python3-dev
+    python3-dev \
+    libtbb-dev
 
 # Move to working directory
 ENV HOME=/root

@@ -1,17 +1,17 @@
-PROJECT = vpr-extract
+PROJECT  = vpr-extract
 
-IMAGE   = "$(PROJECT)-dev"
-VOLUME  = "$(shell pwd):/var/$(PROJECT)"
-USER    = "$(shell id -u):$(shell id -g)"
+IMAGE    = "$(PROJECT)-dev"
+VOLUME   = "$(shell pwd):/var/$(PROJECT)"
+USER     = "$(shell id -u):$(shell id -g)"
 
-BUILD   = build
+BUILD    = build
 
 ifeq ($(CONFIG),)
-CONFIG  = Debug
+CONFIG   = Debug
 endif
 
 ifeq ($(VERBOSE),)
-VERBOSE = 1
+VERBOSE  = 1
 endif
 
 all: local-build

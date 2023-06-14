@@ -10,6 +10,8 @@ set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin )
 set( CXX_HEADER_DIR ${CMAKE_SOURCE_DIR}/include )
 set( CXX_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src )
 
+find_package(TBB REQUIRED)
+
 include_directories( ${PROJECT_NAME} ${CXX_HEADER_DIR} )
 
 set( CXX_HEADERS
@@ -22,29 +24,37 @@ set( CXX_SOURCES
 set( SOURCES ${CXX_HEADERS} ${CXX_SOURCES})
 
 add_executable( ${PROJECT_NAME} ${SOURCES} )
-
-if(MSVC)
-else()
-    if(CMAKE_BUILD_TYPE STREQUAL "Release")
-            target_compile_options(
-                ${PROJECT_NAME} PRIVATE -march=native -m64
-                                        -O3
-                                        -Wall -Wextra -Werror -Wshadow -Wpedantic -Wconversion
-                                        -ffunction-sections -fPIE
-                                        -fno-ident -fvisibility=hidden
-            )
-            target_link_options(
-                ${PROJECT_NAME} PRIVATE -s
-            )
-        else()
-            target_compile_options(
-                ${PROJECT_NAME} PRIVATE -O2
-                                        -Wall -Wextra -Werror -Wshadow -Wpedantic -Wconversion
-            )
-    endif()
-endif()
-
+target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)
 install(
     TARGETS     ${PROJECT_NAME} 
     DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 )
+
+if(MSVC)
+    target_compile_options(
+        ${PROJECT_NAME} PRIVATE /W4 /WX
+                                $<$<CONFIG:Debug>:/MTd>
+                                $<$<CONFIG:Debug>:/EHa>
+                                $<$<CONFIG:Release>:/ARCH:AVX512>
+                                $<$<CONFIG:Release>:/EHs>
+                                $<$<CONFIG:Release>:/MT>
+                                $<$<CONFIG:Release>:/O2>
+                                $<$<CONFIG:Release>:/DNDEBUG>
+    )
+    target_link_options( ${PROJECT_NAME} PRIVATE $<$<CONFIG:Release>:/MANIFEST:NO> )
+else()
+    target_compile_options(
+        ${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -Wshadow -Wpedantic -Wconversion
+                                $<$<CONFIG:Debug>:-O2>
+                                $<$<CONFIG:Release>:-Ofast>
+                                $<$<CONFIG:Release>:-m64>
+                                $<$<CONFIG:Release>:-march=native>
+                                $<$<CONFIG:Release>:-ffast-math>
+                                $<$<CONFIG:Release>:-ffunction-sections>
+                                $<$<CONFIG:Release>:-fPIE>
+                                $<$<CONFIG:Release>:-fno-ident>
+                                $<$<CONFIG:Release>:-fvisibility=hidden>
+    )
+    target_link_options( ${PROJECT_NAME} PRIVATE $<$<CONFIG:Release>:-s> )
+endif()
+
