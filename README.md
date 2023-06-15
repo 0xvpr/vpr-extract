@@ -1,6 +1,17 @@
-# vpr-extract
-This project aims to provide a tool for the extraction of the  
-.text section of a COFF object file.
+<h1 align="center">vpr-extract</h1>
+<p align="center">
+  <img src="https://img.shields.io/badge/Windows--x86__64-supported-green">
+  <img src="https://img.shields.io/badge/Windows--x86-supported-green">
+  <img src="https://img.shields.io/badge/Linux--x86__64-supported-green">
+  <img src="https://img.shields.io/badge/Linux--x86-unsupported-red">
+  <a href="https://mit-license.org/">
+    <img src="https://img.shields.io/github/license/0xvpr/vpr-extract?style=flat-square">
+  </a>
+  <br>
+  <h3 align="center">A command line tool for the extraction of the .text section of
+32/64-bit COFF objects, and ELF64 Relocatable objects.</h3>
+  <br>
+</p>
 
 ## Build Instructions
 ### Using Docker CMake (Recommended)
