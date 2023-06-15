@@ -8,8 +8,7 @@
     <img src="https://img.shields.io/github/license/0xvpr/vpr-extract?style=flat-square">
   </a>
   <br>
-  <h3 align="center">A command line tool for the extraction of the .text section of
-32/64-bit COFF objects, and ELF64 Relocatable objects.</h3>
+  <h3 align="center">A command line tool for the extraction of the .text section of 32/64-bit COFF objects, and ELF64 Relocatable objects.</h3>
   <br>
 </p>
 
